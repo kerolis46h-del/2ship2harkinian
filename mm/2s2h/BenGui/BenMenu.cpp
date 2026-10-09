@@ -1233,6 +1233,9 @@ void BenMenu::AddEnhancements() {
             "- Gold Dust: After obtaining the Gold Dust bottle\n"
             "- Chateau Romani: After obtaining Chateau Romani"));
     AddWidget(path, "Accessibility", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "Text-to-Speech", WIDGET_CVAR_CHECKBOX)
+        .CVar("gEnhancements.A11y.TextToSpeech")
+        .Options(CheckboxOptions().Tooltip("Reads dialogue aloud using the Windows speech engine."));
     AddWidget(path, "Disable Screen Flash for Enemy Kills", WIDGET_CVAR_CHECKBOX)
         .CVar("gEnhancements.A11y.NoScreenFlashForEnemyKill")
         .Options(CheckboxOptions().Tooltip("Disables the white screen flash on enemy kill."));
