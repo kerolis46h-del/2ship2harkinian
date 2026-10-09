@@ -6,6 +6,9 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 
+// 2S2H [TTS]
+void TextToSpeech_Speak(const char* text);
+
 f32 sNESFontWidths[160] = {
     8.0f,  8.0f,  6.0f,  9.0f,  9.0f,  14.0f, 12.0f, 3.0f,  7.0f,  7.0f,  7.0f,  9.0f,  4.0f,  6.0f,  4.0f,  9.0f,
     10.0f, 5.0f,  9.0f,  9.0f,  10.0f, 9.0f,  9.0f,  9.0f,  9.0f,  9.0f,  6.0f,  6.0f,  9.0f,  11.0f, 9.0f,  11.0f,
@@ -1032,6 +1035,45 @@ u8 sMaskCodeTextLengthENG[] = {
     sizeof(GREEN_STR) - 1,
 };
 
+// 2S2H [TTS] Turns the textbox that was just decoded into plain text and speaks it.
+static void Message_SpeakDecodedNES(PlayState* play) {
+    MessageContext* msgCtx = &play->msgCtx;
+    char out[512];
+    s32 outLen = 0;
+    s32 i;
+
+    if (!CVarGetInteger("gEnhancements.A11y.TextToSpeech", 0)) {
+        return;
+    }
+
+    for (i = 0; i <= msgCtx->decodedTextLen && outLen < (s32)sizeof(out) - 2; i++) {
+        u8 c = (u8)msgCtx->decodedBuffer.schar[i];
+
+        // These end the current textbox: stop here.
+        if ((c == MESSAGE_BOX_BREAK) || (c == MESSAGE_BOX_BREAK2) || (c == MESSAGE_BOX_BREAK_DELAYED) ||
+            (c == MESSAGE_FADE) || (c == MESSAGE_FADE_SKIPPABLE) || (c == MESSAGE_EVENT) ||
+            (c == MESSAGE_EVENT2) || (c == MESSAGE_END) || (c == MESSAGE_CONTINUE) ||
+            (c == MESSAGE_PERSISTENT)) {
+            break;
+        }
+
+        // Codes that carry argument bytes: skip the arguments so they aren't read aloud.
+        if ((c == MESSAGE_SFX) || (c == MESSAGE_DELAY)) {
+            i += 2;
+        } else if (c == MESSAGE_TEXT_SPEED) {
+            i += 1;
+        } else if ((c == MESSAGE_NEWLINE) || (c == MESSAGE_CARRIAGE_RETURN)) {
+            out[outLen++] = ' ';
+        } else if ((c >= 0x20) && (c < 0x7F)) {
+            out[outLen++] = (char)c; // normal text
+        }
+        // everything else (colors, icons, choice markers, etc.) is skipped
+    }
+
+    out[outLen] = '\0';
+    TextToSpeech_Speak(out);
+}
+
 void Message_DecodeNES(PlayState* play) {
     MessageContext* msgCtx = &play->msgCtx;
     Font* font = &msgCtx->font;
@@ -2000,4 +2042,6 @@ void Message_DecodeNES(PlayState* play) {
         decodedBufPos++;
         msgCtx->msgBufPos++;
     }
+
+    Message_SpeakDecodedNES(play); // 2S2H [TTS]
 }
